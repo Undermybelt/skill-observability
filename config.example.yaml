@@ -1,0 +1,57 @@
+# Observability Skill Configuration
+
+agents:
+  - name: main
+    port: 18789
+    label: "师傅 (Main)"
+  - name: dev
+    port: 19001
+    label: "Dev (研究员)"
+  - name: apprentice2
+    port: 19002
+    label: "Apprentice2 (学徒)"
+
+check_interval: 30  # seconds
+history_retention_days: 7
+
+alerts:
+  channels:
+    discord: ""   # Set webhook URL
+    telegram: ""  # Set bot_token:chat_id
+    email: ""     # Optional
+
+  rules:
+    - name: agent-down
+      description: "Agent gateway unreachable"
+      condition: "status != 'reachable'"
+      severity: critical
+      cooldown_minutes: 5
+    - name: high-latency
+      description: "Agent response latency > 5s"
+      condition: "latency_ms > 5000"
+      severity: warning
+      cooldown_minutes: 10
+    - name: cron-stuck
+      description: "Cron job not running for > 2x interval"
+      condition: "cron.last_run_ago > (cron.interval * 2)"
+      severity: warning
+    - name: cron-failure-rate
+      description: "Cron failure rate > 20% in last hour"
+      condition: "cron.failure_rate > 0.2"
+      severity: warning
+    - name: memory-growth
+      description: "Agent memory growth > 50% in 1h"
+      condition: "memory.growth_rate > 0.5"
+      severity: info
+
+dashboard:
+  refresh_interval: 5
+  theme: dark
+  show_metrics: true
+  show_alerts: true
+
+# Optional: Prometheus endpoint
+prometheus:
+  enabled: false
+  port: 9090
+  path: "/metrics"
