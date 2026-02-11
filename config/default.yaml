@@ -1,0 +1,64 @@
+# Observability Skill Configuration
+# 监控与告警基础设施
+
+# 轮询间隔 (秒)
+poll_interval: 60
+
+# 数据保留 (天)
+retention_days: 30
+
+# 告警渠道配置
+channels:
+  discord:
+    enabled: true
+    # 可以使用消息工具 (无需 webhook)
+    # 如果使用 message tool，留空即可，网关会从配置读取
+    webhook_url: ""
+
+  telegram:
+    enabled: false
+    chat_id: ""
+
+# 默认告警规则
+rules:
+  - id: session_offline_main
+    description: "Main instance offline for > 5 minutes"
+    condition: 'agent("main").status !== "online"'
+    cooldown: "5m"
+    severity: critical
+    channel: discord
+
+  - id: high_token_usage
+    description: "High token consumption (> 100k/hr)"
+    condition: 'agent("main").token_usage_last_hour > 100000'
+    cooldown: "1h"
+    severity: warning
+    channel: telegram
+
+  - id: cron_missed
+    description: "Cron job missed 2+ consecutive runs"
+    condition: 'crons.some(c => c.missed_runs > 0)'
+    cooldown: "30m"
+    severity: warning
+    channel: discord
+
+  - id: apprentice2_offline
+    description: "Apprentice2 instance offline"
+    condition: 'agent("apprentice2") && agent("apprentice2").status !== "online"'
+    cooldown: "5m"
+    severity: critical
+    channel: discord
+
+  - id: dev_offline
+    description: "Dev instance offline"
+    condition: 'agent("dev") && agent("dev").status !== "online"'
+    cooldown: "5m"
+    severity: warning
+    channel: discord
+
+# Dashboard 设置
+dashboard:
+  show_resources: true
+  show_cron: true
+  show_alerts: true
+  sort_by: "status"  # status, name, last_seen

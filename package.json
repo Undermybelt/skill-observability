@@ -1,0 +1,32 @@
+{
+  "name": "observability-skill",
+  "version": "1.0.0",
+  "description": "OpenClaw Observability Skill - Multi-agent monitoring, cron health, and alerting infrastructure",
+  "main": "src/index.js",
+  "bin": {
+    "observability": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js start",
+    "status": "node src/index.js status",
+    "test": "node tests/unit/test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "peerDependencies": {},
+  "keywords": [
+    "openclaw",
+    "skill",
+    "monitoring",
+    "observability",
+    "alerting",
+    "cron",
+    "agent"
+  ],
+  "author": "Dev Apprentice (C-3PO)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Undermybelt/skill-observability.git"
+  }
+}

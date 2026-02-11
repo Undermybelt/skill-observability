@@ -1,0 +1,15 @@
+{
+  "poll_interval": 60,
+  "retention_days": 30,
+  "channels": {
+    "discord": { "enabled": true },
+    "telegram": { "enabled": false }
+  },
+  "rules": [
+    { "id": "session_offline_main", "description": "Main instance offline", "condition": "agent(\"main\").status !== \"online\"", "cooldown": "5m", "severity": "critical", "channel": "discord" },
+    { "id": "high_token_usage", "description": "High token consumption", "condition": "agent(\"main\").token_usage_last_hour > 100000", "cooldown": "1h", "severity": "warning", "channel": "telegram" },
+    { "id": "cron_missed", "description": "Cron job missed", "condition": "crons.some(c => c.missed_runs > 0)", "cooldown": "30m", "severity": "warning", "channel": "discord" },
+    { "id": "apprentice2_offline", "description": "Apprentice2 offline", "condition": "agent(\"apprentice2\") && agent(\"apprentice2\").status !== \"online\"", "cooldown": "5m", "severity": "critical", "channel": "discord" },
+    { "id": "dev_offline", "description": "Dev offline", "condition": "agent(\"dev\") && agent(\"dev\").status !== \"online\"", "cooldown": "5m", "severity": "warning", "channel": "discord" }
+  ]
+}

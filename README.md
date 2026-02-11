@@ -1,127 +1,202 @@
-# 🚨 Observability Skill
+# 📊 Observability Skill
 
-> **Unified Monitoring & Alerting for OpenClaw Multi-Agent Systems**
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://clawhub.com)
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+> OpenClaw 多实例统一监控、告警与健康检查基础设施
 
-## 🎯 Problem It Solves
-
-When running multiple OpenClaw agents (Main, Dev, Apprentice2), you lose visibility:
-- Is Dev actually running research every 30 min?
-- Did Apprentice2's last heartbeat fail?
-- Are any agents hung or slow?
-- Are cron tasks completing successfully?
-
-Without monitoring, you're **blind**. Observability skill gives you eyes.
-
-## ✨ Features
-
-- **Agent Health Monitor**: Pings each gateway, measures latency, status
-- **Cron Health Checker**: Tracks cron job success/failure rates, last run times
-- **Alert Dispatcher**: Sends notifications to Discord, Telegram, email
-- **CLI Dashboard**: Real-time text dashboard (updates every 5s)
-- **5 Built-in Alert Rules**: agent-down, high-latency, cron-stuck, cron-failure-rate, memory-growth
-- **Prometheus Exporter** (optional): `/metrics` endpoint for Grafana
-
-## ⚡ Quick Start
+## 快速开始
 
 ```bash
-# 1. Install
-cp -r observability-skill ~/.openclaw/workspace/skills/
-npx openclaw gateway restart
+# 1. 复制 skill 到你的 workspace
+cp -r observability-skill ~/.openclaw/skills/
 
-# 2. Configure (optional, defaults work out of box)
-cp config.example.yaml config.yaml
-# Edit: set discord webhook if you want alerts
+# 2. 安装依赖
+cd ~/.openclaw/skills/observability-skill
+npm install
 
-# 3. Run health check
-/observability check
+# 3. 配置通知渠道 (编辑 config/default.yaml)
+#    - 设置 discord.enabled = true (如果你在 Discord 频道)
+#    - 或设置 telegram.enabled = true
 
-# 4. Start dashboard
-/observability dashboard
+# 4. 首次运行
+node src/index.js --init
+
+# 5. 查看状态
+node src/index.js status
 ```
 
-## 📊 Dashboard Output
+## 为什么需要这个？
 
+如果你同时运行 **Main + Dev + Apprentice2** 多个 OpenClaw 实例，你可能会遇到：
+
+- ❌ 不知道某个实例是否还活着
+- ❌ Cron 任务失败但直到第二天才发现
+- ❌ 没有统一的资源使用视图
+- ❌ 告警只能靠手动检查
+
+Observability Skill 专门解决这些问题。
+
+## 核心功能
+
+| 监控项 | 详情 |
+|--------|------|
+| **Agent 健康** | 所有 session 的在线状态、最后活跃时间、token 消耗 |
+| **Cron 健康** | 自动检测 missed runs、任务停滞、启用状态 |
+| **系统资源** | 内存、磁盘、负载平均值 |
+| **告警通知** | Discord / Telegram 多通道，支持规则和冷却 |
+| **CLI 仪表盘** | 类似 `top` 的实时表格视图 |
+
+## 配置
+
+编辑 `config/default.yaml` 或创建 `~/.openclaw/observability.yaml`：
+
+```yaml
+# 轮询间隔（秒）
+poll_interval: 60
+
+# Discord 告警
+channels:
+  discord:
+    enabled: true   # 设置为 false 禁用
+
+# 告警规则（支持自定义）
+rules:
+  - id: dev_offline
+    condition: 'agent("dev").status !== "online"'
+    cooldown: "5m"
+    severity: warning
+    channel: discord
 ```
-=== OpenClaw Observability Dashboard ===
-✅ main        status=reachable   latency=23ms
-✅ dev         status=reachable   latency=34ms
-✅ apprentice2 status=reachable   latency=41ms
 
-Recent Alerts:
-  [critical] Agent dev was unreachable at 14:30Z
+**更多规则示例**:
+
+```yaml
+# 高 token 消耗（Main > 100k/hr）
+- id: high_token_usage_main
+  condition: 'agent("main").token_usage_last_hour > 100000'
+  cooldown: "1h"
+  severity: warning
+
+# 磁盘使用超过 90%
+- id: disk_almost_full
+  condition: 'resources.disk_usage_percent > 90'
+  cooldown: "30m"
+  severity: critical
+
+# 任意 cron  missed
+- id: cron_missed
+  condition: 'crons.some(c => c.missed_runs > 0)'
+  cooldown: "30m"
+  severity: warning
 ```
 
-## 🔧 Commands
+## 使用场景
 
-| Command | Description |
-|---------|-------------|
-| `/observability check` | Run one health check cycle |
-| `/observability dashboard` | Start live updating dashboard |
-| `/observability cron status` | Show cron job health |
-| `/observability alerts list --last 24h` | Show recent alerts |
-| `/observability alert test --channel discord` | Send test alert |
-| `/observability metrics export --format prometheus` | Export metrics |
+### 场景 1：心跳检查
 
-## 🔔 Alert Rules (Default)
+添加到 `HEARTBEAT.md`：
 
-| Rule | Condition | Severity |
-|------|-----------|----------|
-| `agent-down` | agent not reachable | critical |
-| `high-latency` | latency > 5000ms | warning |
-| `cron-stuck` | last run > 2x interval | warning |
-| `cron-failure-rate` | failures > 20% last hour | warning |
-| `memory-growth` | memory growth > 50% in 1h | info |
+```markdown
+## 🔍 Heartbeat Checks
 
-Customize in `config.yaml`.
+如果 heartbeat.phase === 'monitoring':
+  const result = await `observability status`;
+  if (result.critical_alerts > 0) {
+    await message.send({ channel: 'discord', content: result.summary });
+  }
+```
 
-## 📦 Integration
+### 场景 2：手动状态检查
 
-Other skills can emit metrics:
+```bash
+# 查看仪表盘
+node src/index.js status
+
+# 启动持续监控后台进程（可选）
+node src/index.js start
+```
+
+### 场景 3：与现有 skill 集成
+
+Alpha Detection 或 Release Orchestrator 在关键操作后可以记录指标：
 
 ```javascript
-// Inside alpha-detection or release-orchestrator
-observability.emit("skill.success", 1, {"skill": "alpha-detection"})
-observability.emit("pipeline.latency", 12000)  # ms
+await observability.recordMetric({
+  name: 'alpha_detected',
+  value: signal.confidence,
+  tags: { token: signal.token }
+});
 ```
 
-These become available for custom alert rules.
+## 状态持久化
 
-## 🛠️ For Ops
+监控数据自动保存到 `data/state.json`，保留最近 30 天（可配置）。
 
-### Prometheus Export
+## 规则语法
 
-Enable in `config.yaml`:
-```yaml
-prometheus:
-  enabled: true
-  port: 9090
+`condition` 字段支持 JavaScript 表达式，可用变量：
+
+- `agent(name)` - 获取单个 agent 状态
+- `agents` - 所有 agents 对象
+- `cron(idOrName)` - 获取单个 cron
+- `crons` - 所有 cron 数组
+- `resources` - 系统资源
+- `now`, `minutesAgo(ts)`, `hoursAgo(ts)` - 时间辅助
+
+**示例**:
+
+```javascript
+// Main 离线超过 10 分钟且 Apprentice2 也在离线
+agent("main").status !== "online" &&
+agent("apprentice2").status !== "online" &&
+minutesAgo(agent("main").last_seen) > 10
 ```
 
-Then scrape `http://localhost:9090/metrics` with Prometheus + Grafana.
+## 架构
 
-### Multi-Instance
+```
+observability-skill/
+├── src/
+│   ├── monitors/
+│   │   ├── agent-health.js    # Agent 健康轮询
+│   │   ├── cron-health.js     # Cron 健康检查
+│   │   └── resources.js       # 系统资源
+│   ├── alerts/
+│   │   ├── dispatcher.js      # 告警发送器
+│   │   └── rules.js           # 规则引擎 + 冷却
+│   ├── dashboard/
+│   │   └── cli.js             # 控制台仪表盘
+│   └── index.js               # 主入口
+├── config/
+│   └── default.yaml           # 默认配置
+├── data/                      # 状态持久化目录
+├── package.json
+└── SKILL.md
+```
 
-The skill runs within Main instance but monitors all configured agents (main, dev, apprentice2). Just ensure Main can reach each agent's gateway (ports 18789, 19001, 19002).
+## 开发
 
-## 📈 SEO Keywords
+```bash
+# 安装依赖
+npm install
 
-`observability`, `monitoring`, `alerting`, `multi-agent`, `openclaw`, `cron health`, `agent monitoring`, `ops for AI agents`, `reliability`
+# 运行单次轮询
+node src/index.js --init
 
-## 🤝 Contribute
+# 查看仪表盘
+node src/index.js status
 
-PRs welcome: https://github.com/Undermybelt/skill-observability
+# 启动持续监控
+node src/index.js start
+```
 
-## 📄 License
+## 注意事项
 
-MIT - Keep your agents alive!
+- ✅ 使用 OpenClaw 内置 API，无需额外依赖
+- ⚠️ `sessions_list` 和 `session_status` 需要权限
+- ⚠️ 资源监控目前主要适配 macOS，Linux 可能需要微调
+- ❌ 不支持 Windows（资源命令不同）
 
----
+## License
 
-**Stop flying blind. Get observability in 5 minutes.**
-
-*Created: 2026-02-11 (P0 from Dev research)*
-*MVP: ~250 lines Python*
-*Status: Ready for beta*
+MIT © 2026 Dev Apprentice (C-3PO)
