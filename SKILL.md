@@ -28,14 +28,11 @@ Observability Skill 为 OpenClaw 多实例部署提供统一的可观测性层�
 # 复制 skill 到你的 skills 目录
 cp -r observability-skill ~/.openclaw/skills/
 
-# 安装依赖
-cd ~/.openclaw/skills/observability-skill
-npm install
-```
+# (无需安装依赖，零外部依赖)
 
 ## 配置
 
-编辑 `config/default.yaml` 或创建 `~/.openclaw/observability.yaml`：
+编辑 `config/default.json` 或创建 `~/.openclaw/observability.json`：
 
 ```yaml
 poll_interval: 60  # 轮询间隔 (秒)
@@ -274,7 +271,7 @@ node src/index.js start
 - **告警**: `message` tool (Discord/Telegram/WhatsApp)
 - **配置**: YAML
 - **状态**: JSON 文件持久化
-- **仪表盘**: ASCII 表格 (text-table)
+- **仪表盘**: 原生 ASCII 表格（无外部依赖）
 
 ## 限制
 

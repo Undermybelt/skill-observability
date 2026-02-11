@@ -10,18 +10,19 @@
 # 1. 复制 skill 到你的 workspace
 cp -r observability-skill ~/.openclaw/skills/
 
-# 2. 安装依赖
-cd ~/.openclaw/skills/observability-skill
-npm install
+# 2. (无需安装依赖，零外部依赖)
 
-# 3. 配置通知渠道 (编辑 config/default.yaml)
+# 3. 配置通知渠道 (编辑 config/default.json)
 #    - 设置 discord.enabled = true (如果你在 Discord 频道)
 #    - 或设置 telegram.enabled = true
 
-# 4. 首次运行
+# 4. 确保 `openclaw` 命令在 PATH 中
+which openclaw  # 应返回路径
+
+# 5. 首次运行
 node src/index.js --init
 
-# 5. 查看状态
+# 6. 查看状态
 node src/index.js status
 ```
 
